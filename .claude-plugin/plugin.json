@@ -1,0 +1,17 @@
+{
+  "name": "kooooojun-skills",
+  "version": "0.1.0",
+  "description": "go-deeper、overnight、hotspot-review：讓 agent 做得更深、整晚自己顧 PR、只重構真的常壞的地方。",
+  "author": {
+    "name": "Kooooojun",
+    "url": "https://github.com/Kooooojun"
+  },
+  "repository": "https://github.com/Kooooojun/skills",
+  "license": "MIT",
+  "keywords": ["prompt", "overnight", "pr", "refactor", "architecture"],
+  "skills": [
+    "./skills/go-deeper",
+    "./skills/overnight",
+    "./skills/hotspot-review"
+  ]
+}

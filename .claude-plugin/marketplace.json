@@ -1,0 +1,16 @@
+{
+  "name": "kooooojun",
+  "owner": {
+    "name": "Kooooojun",
+    "url": "https://github.com/Kooooojun"
+  },
+  "description": "Kooooojun's agent skills for Claude Code.",
+  "plugins": [
+    {
+      "name": "kooooojun-skills",
+      "source": "./",
+      "description": "go-deeper（把 prompt 改寫得更深）、overnight（睡覺時讓 agent 顧 PR）、hotspot-review（找最近常被修的地方並重構）。",
+      "category": "engineering"
+    }
+  ]
+}
