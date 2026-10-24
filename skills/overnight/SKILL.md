@@ -11,7 +11,7 @@ argument-hint: "[任務描述，或 repo／PR URL…] [--until HH:MM]（預設�
 overnight 只做頭尾：睡前問一次、早上問一次；中間有 `pstack:poteto-mode` 就交給它，沒有就自己做。
 它的價值是**規則**（什麼留給使用者、什麼不准做、什麼要先 review）和**介面**（使用者只被打擾兩次）。
 
-`~/.config/overnight/local.md` 存在就先讀，裡面是這台機器的追加檢查與規則，跟本檔一起適用。
+`~/.config/overnight/local.md` 存在就先讀，裡面是這台機器的追加檢查與規則，跟本檔一起適用（兩邊衝突時以 local.md 為準）。不存在時，在開工提醒裡附一句：「可照本 skill 目錄的 `local.example.md` 建一份本機設定」。
 
 ## 1. 開工（2 分鐘內）
 

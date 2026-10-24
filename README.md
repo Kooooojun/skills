@@ -42,7 +42,13 @@ npx skills add Kooooojun/skills
 
 **選用**：裝了 poteto 的 pstack（[Claude Code 版](https://github.com/michael-denyer/pstack-claude)）會把中間的工作交給它的 `poteto-mode`；沒裝就由 agent 自己照交接單做。早上的網頁會用 `eli5` skill，沒有就自己寫簡單 HTML。
 
-**本機設定（選用）**：`~/.config/overnight/local.md` 存在就會一起讀，放只屬於你這台機器的檢查與規則，例如記憶體上限、帳號切換工具。這個檔不在 skill 裡，不會被分享。
+**本機設定（選用）**：`~/.config/overnight/local.md` 存在就會一起讀，放只屬於你這台機器的檢查與規則（記憶體、帳號切換、配額、工具偏好），衝突時以它為準。從範本開始：
+
+```
+mkdir -p ~/.config/overnight && cp skills/overnight/local.example.md ~/.config/overnight/local.md
+```
+
+用 plugin 或 npx 安裝的，範本在安裝後的 `overnight/` 資料夾裡。這個檔不在 skill 裡，不會被分享。
 
 `evals/` 有一套假 GitHub 沙盒測試：`evals/harness/setup_sandbox.sh <dir> busy|quiet` 建沙盒，跑完用 `evals/harness/grade.py <run_dir> busy|quiet` 評分。
 
