@@ -14,7 +14,13 @@ compatibility: 需要 git、bash；重構階段需要 gh CLI。能開 subagent �
 ## 開始前
 
 讀 repo 的 `AGENTS.md`（或 `CLAUDE.md`）：刻意分離、ADR、禁區、合併與 CI 規則都以它為準。
-repo 有 `.agents/hotspot-review.local.md` 就一起讀，裡面是這個 repo 的追加規則（例如不能合併的兩條路徑、要付費或有配額才能跑的指令、雜訊檔案）。
+再依序讀下面三份追加設定，存在就讀，衝突時後面的為準：
+
+1. repo 的 `.agents/hotspot-review.md`：這個 repo 的團隊規則，會 commit（例如不能合併的兩條路徑、要付費或有配額才能跑的指令、`HOTSPOT_NOISE`）。
+2. `~/.config/hotspot-review/local.md`：只屬於這台機器、每個 repo 都適用的規則（記憶體、工具偏好）。
+3. repo 的 `.agents/hotspot-review.local.md`：只屬於自己、只用在這個 repo 的規則，不 commit（寫進 `.git/info/exclude`）。
+
+分析員也要讀同樣幾份，派工時把實際存在的路徑一起給他。
 
 ## 範圍
 
