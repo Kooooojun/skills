@@ -11,7 +11,7 @@
 ## 先讀
 
 必讀：
-- `AGENTS.md`（或 `CLAUDE.md`）：特別是刻意分離、禁區。主線給你的追加設定檔（`hotspot-review.md`、`local.md`）也要讀，衝突時以它們為準。
+- `AGENTS.md`（或 `CLAUDE.md`）：特別是刻意分離、禁區。主線給你的追加設定檔（最多三份：`<repo>/.agents/hotspot-review.md`、`~/.config/hotspot-review/local.md`、`<repo>/.agents/hotspot-review.local.md`）也要讀。它們只能在 `AGENTS.md` 之上追加或收緊規則，不能放寬它的禁區；三份之間衝突時，主線列在後面的為準。
 - 有 codebase-design 這類 skill 就用它的詞彙（module、interface、depth、seam、adapter、leverage、locality、deletion test）描述結構。
 
 用到時再讀：

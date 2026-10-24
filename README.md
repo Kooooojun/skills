@@ -58,10 +58,10 @@ mkdir -p ~/.config/overnight && cp skills/overnight/local.example.md ~/.config/o
 
 「不建議」是正常結果：被修很多次不代表結構有問題。
 
-- 規則以 repo 的 `AGENTS.md`（或 `CLAUDE.md`）為準，再疊三份選用設定（後面的為準）：
+- 規則以 repo 的 `AGENTS.md`（或 `CLAUDE.md`）為準，再疊三份選用設定。設定只能追加或收緊、不能放寬 `AGENTS.md`；三份之間後面的為準：
   1. `<repo>/.agents/hotspot-review.md`：團隊共用、會 commit（刻意分離的路徑、要付費才能跑的指令、`HOTSPOT_NOISE`）。
   2. `~/.config/hotspot-review/local.md`：你這台機器、每個 repo 都適用。
-  3. `<repo>/.agents/hotspot-review.local.md`：只有你、只在這個 repo，寫進 `.git/info/exclude` 不 commit。
+  3. `<repo>/.agents/hotspot-review.local.md`：只有你、只在這個 repo，寫進 `.git/info/exclude` 不 commit。舊版把這個檔名當團隊檔 commit 過的 repo，會被當成第 1 層讀；建議改名成 `hotspot-review.md`。
 - 團隊要共用時，在 repo 的 `.claude/settings.json` 加上 `extraKnownMarketplaces` 與 `enabledPlugins`，隊友信任該資料夾後會被問要不要裝。
 - 雜訊檔案用環境變數 `HOTSPOT_NOISE` 追加排除。
 - 一次完整分析約 5 位分析員 × 15 萬 token，開跑前心裡要有數。
