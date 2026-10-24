@@ -1,7 +1,7 @@
 ---
 name: overnight
 description: 夜班模式。使用者去睡覺時，把長任務整晚跑完；如果沒指定任務，就顧好使用者所有的 open PR。流程分三段：睡前先用選擇題問使用者；半夜自己判斷、修 CI、解衝突（有 pstack 的 poteto-mode 就交給它），merge 與部署要先過獨立 agent review；早上做一頁本機網頁，再用選擇題問使用者。只把真正關鍵的決策留給使用者。觸發詞：overnight、夜班、我要睡了、明早再看、整晚跑。
-compatibility: 需要 git 與 gh CLI；能開 subagent 的宿主（Claude Code、Codex 等）才能過 merge／部署的 review 關卡。
+compatibility: 需要 git、gh CLI；排隊用 flock（沒有就用 mkdir 當鎖）；能開 subagent 的宿主（Claude Code、Codex 等）才能過 merge／部署的 review 關卡。
 disable-model-invocation: true
 argument-hint: "[任務描述，或 repo／PR URL…] [--until HH:MM]（預設：我所有 open PR，跑到早上 08:00）"
 ---
@@ -19,7 +19,7 @@ overnight 只做頭尾：睡前問一次、早上問一次；中間有 `pstack:p
 - **截止**：照 `--until`，沒給就到下一個 08:00。
 - **輸出資料夾**：`OUT=${OVERNIGHT_DIR:-~/.local/state/overnight/<YYYY-MM-DD>/<workspace>}`。`<workspace>` 取 `git rev-parse --show-toplevel`（不在 git 就用目前目錄），去掉 `$HOME/` 後把 `/` 換成 `-`。同一晚可能有好幾份夜班，每份只讀寫自己的 `$OUT`。裡面放 `handoff.json`（格式見最後）、`decisions.tsv`、`morning.html`。
 - **開工前檢查**（只讀，一分鐘內；夜班最常斷在環境，不是程式）：
-  - 重工作（完整測試、回測、build）一次只跑一份：用 `~/.local/state/overnight/locks/<資源>.lock` 搭 `flock` 排隊。鎖跨 workspace 共用，不放 `$OUT`。
+  - 重工作（完整測試、回測、build）一次只跑一份：用 `~/.local/state/overnight/locks/<資源>.lock` 搭 `flock` 排隊（沒有 flock 就用 `mkdir <鎖>.d` 當鎖，做完刪掉）。鎖跨 workspace 共用，不放 `$OUT`。
   - 產物、快取、續跑點放 `$OUT`，不放 `/tmp`（重開機會清空）。
 - **提醒使用者**：電腦不能睡、session 不能關。一句話講完，連同檢查發現的問題，然後直接開工，不等回覆。
 
@@ -55,7 +55,7 @@ overnight 只做頭尾：睡前問一次、早上問一次；中間有 `pstack:p
 
 什麼算關鍵決策：<第 4 節 1–7 條和判準，一字不改>
 merge／部署前的 review 關卡：<第 4.5 節，一字不改>
-這份清單優先於 never-block-on-the-human：碰到任何一條，就算可以 revert，也要留給我。
+這份清單優先於任何「能還原就別問人」的原則（例如 pstack 的 never-block-on-the-human）：碰到任何一條，就算可以 revert，也要留給我。
 ```
 
 有 poteto-mode 就照它自己的路由做事（Autonomous run、Babysit、fix-ci、fix-merge-conflicts），這裡不重寫；沒有就自己逐個 PR 修 CI、解衝突、處理 review，每做完一個就回頭看時間。
@@ -78,7 +78,7 @@ merge／部署前的 review 關卡：<第 4.5 節，一字不改>
 
 **不要 push 會變紅的東西**：修好的部分先 push；跟上 base 後才變紅、而且要碰到 1–7 條才修得好（例如要改測試期望值），就不要 push 那個 merge，把它留成準備好的選項。
 
-**判準**：1–7 條優先。都沒碰到時，判斷錯了能在 feature branch 用一次 revert 還原、且期間沒人受害，就自己決定；不能就留給使用者。pstack 的 never-block-on-the-human 只適用於 1–7 條都沒碰到的事。
+**判準**：1–7 條優先。都沒碰到時，判斷錯了能在 feature branch 用一次 revert 還原、且期間沒人受害，就自己決定；不能就留給使用者。若有 pstack 的 never-block-on-the-human，它只適用於 1–7 條都沒碰到的事。
 
 ## 4.5 高風險動作的 review 關卡
 
@@ -91,8 +91,8 @@ merge PR、部署：每次都要過，沒有例外。
 **叫 reviewer**：派不出 reviewer（宿主不能開 subagent）就不做，記成 items 的 `blocked` 並寫原因；這是環境問題，不是決策，不要變成問使用者的題目。派一個全新的 subagent（不帶你的 context），只讀不改，不給你的結論。給它動作、PR 連結或 diff、CI 結果、repo 的 AGENTS.md 路徑；部署再給上次部署到這次之間的 commit。請它檢查 bug、有沒有碰到第 4 節 1–7 條、部署會不會影響正在用的服務或資料，最後一行只回 `PASS` 或 `BLOCK：<原因>`。
 
 **看結果**：
-- `PASS`：照做，記進 `decisions.tsv`，附 reviewer 重點和還原方式（merge 寫 `git revert -m 1 <sha>`，部署寫該 repo 的回滾方式）。
-- `BLOCK`：不做。能自己修就修完再派新的 reviewer；同一件事 BLOCK 兩次就寫進 decisions 留到早上。
+- `PASS`：照做，在 `decisions.tsv` 記一行 `review PASS <動作>`，附 reviewer 重點和還原方式（merge 寫 `git revert -m 1 <sha>`，部署寫該 repo 的回滾方式）。
+- `BLOCK`：不做。在 `decisions.tsv` 記一行 `review BLOCK <原因>`。能自己修就修完再派新的 reviewer；同一件事 BLOCK 兩次就寫進 decisions 留到早上。
 - 部署完照 repo 的方式驗收；失敗照文件回滾，文件沒寫就停下留到早上。
 
 ## 5. 早上收尾

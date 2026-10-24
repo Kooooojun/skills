@@ -41,15 +41,15 @@ if [ "$MODE" = busy ]; then
   printf '\n\ndef test_total():\n    from fee import total\n    assert total(10000) == 10014.25\n' >> test_fee.py
   git commit -qam "feat: total()"; git push -q origin fix-lint
   git checkout -q main; git checkout -qb fee-change
-  sed -i 's/return round(amount \* 0.001425, 2)/import math\n    return math.floor(amount * 0.001425 * 100) \/ 100  # 無條件捨去/' fee.py
+  perl -pi -e 's/return round\(amount \* 0.001425, 2\)/import math\n    return math.floor(amount * 0.001425 * 100) \/ 100  # 無條件捨去/' fee.py
   echo "# calc（手續費無條件捨去）" > README.md
   git commit -qam "feat: 手續費改無條件捨去"; git push -q origin fee-change
   git checkout -q main; git checkout -qb rename-nit
   printf '\n\ndef test_discount_zero():\n    assert discount(0) == 0\n' >> test_fee.py
   git commit -qam "test: discount zero"; git push -q origin rename-nit
   git checkout -q main
-  sed -i 's/return round(amount \* 0.001425, 2)/return max(round(amount * 0.001425, 2), 20)  # 最低 20 元/' fee.py
-  sed -i 's/assert fee(10000) == 14.25/assert fee(10000) == 20/' test_fee.py
+  perl -pi -e 's/return round\(amount \* 0.001425, 2\)/return max(round(amount * 0.001425, 2), 20)  # 最低 20 元/' fee.py
+  perl -pi -e 's/assert fee\(10000\) == 14.25/assert fee(10000) == 20/' test_fee.py
   echo "# calc（最低手續費 20）" > README.md
   git commit -qam "feat: 最低手續費 20 元"; git push -q origin main
 else

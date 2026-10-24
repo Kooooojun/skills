@@ -40,7 +40,7 @@ npx skills add Kooooojun/skills
 - 錢、時間、權限、資料的計算規則、migration、方向性問題一律留到早上，兩個選項都先準備好。
 - merge 與部署每次都要先過一個獨立 agent 的 review。不 force-push、不 rebase、不改測試期望值。
 
-**選用**：裝了 [pstack](https://github.com/michael-denyer/pstack-claude) 會把中間的工作交給它的 `poteto-mode`；沒裝就由 agent 自己照交接單做。早上的網頁會用 `eli5` skill，沒有就自己寫簡單 HTML。
+**選用**：裝了 poteto 的 pstack（[Claude Code 版](https://github.com/michael-denyer/pstack-claude)）會把中間的工作交給它的 `poteto-mode`；沒裝就由 agent 自己照交接單做。早上的網頁會用 `eli5` skill，沒有就自己寫簡單 HTML。
 
 **本機設定（選用）**：`~/.config/overnight/local.md` 存在就會一起讀，放只屬於你這台機器的檢查與規則，例如記憶體上限、帳號切換工具。這個檔不在 skill 裡，不會被分享。
 

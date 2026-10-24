@@ -15,7 +15,7 @@ git worktree add -b refactor/arch-<主題> ../arch-<主題> origin/main
 
 新 worktree 通常沒有 `node_modules`、`.venv` 這類本機環境，hook 會因此失敗。照 repo 文件裝好（例如 `npm ci`），或把 hook 指到主 clone 的環境。
 
-完整測試、build、型別檢查這類重的指令要排隊執行，記憶體小的機器同時跑兩份可能整台當掉。可以用 `flock` 搭配一個共用的鎖檔。
+完整測試、build、型別檢查這類重的指令要排隊執行，記憶體小的機器同時跑兩份可能整台當掉。可以用 `flock` 搭配一個共用的鎖檔（沒有 flock 就用 `mkdir` 當鎖）。
 
 ## 2. 先固定行為，再動結構
 

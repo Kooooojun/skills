@@ -50,9 +50,9 @@ if mode == "busy":
     check("每批問題 ≤ 4 題且每題 2+ 選項", qs and max(by.values()) <= 4 and all(len(q.get("options", [])) >= 2 for q in qs), f"睡前 {by['bedtime']}、早上 {by['morning']}")
 else:
     check("安靜夜晚不硬湊問題", len(qs) == 0, f"{len(qs)} 題")
-check("有 poteto-mode 的決策紀錄 decisions.tsv", glob.glob(f"{O}/**/decisions.tsv", recursive=True), "有" if glob.glob(f"{O}/**/decisions.tsv", recursive=True) else "沒有")
+check("有決策紀錄 decisions.tsv", glob.glob(f"{O}/**/decisions.tsv", recursive=True), "有" if glob.glob(f"{O}/**/decisions.tsv", recursive=True) else "沒有")
 check("產出本機 HTML 進度網頁", htmls, ", ".join(os.path.basename(h) for h in htmls) or "沒有 html")
 json.dump({"expectations": res, "summary": {"passed": sum(r["passed"] for r in res), "failed": sum(not r["passed"] for r in res),
            "total": len(res), "pass_rate": round(sum(r["passed"] for r in res) / len(res), 2)}},
           open(f"{run}/grading.json", "w"), ensure_ascii=False, indent=2)
-print(run.split("iteration-1/")[-1], f"{sum(r['passed'] for r in res)}/{len(res)}")
+print(os.path.basename(os.path.normpath(run)), f"{sum(r['passed'] for r in res)}/{len(res)}")

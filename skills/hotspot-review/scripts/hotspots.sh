@@ -10,24 +10,25 @@ TOP="${2:-30}"
 # 文件、changelog、fixture、lockfile 改動很多但不是設計熱點。
 NOISE='(^(changelog\.d/|CHANGELOG|docs/|tests?/fixtures/)|\.md$|(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|uv\.lock|poetry\.lock|Cargo\.lock|go\.sum)$)'
 [ -n "${HOTSPOT_NOISE:-}" ] && NOISE="($NOISE|$HOTSPOT_NOISE)"
-git fetch -q origin main
-BASE=$(git rev-parse --short origin/main)
-count() { git log origin/main --since="$SINCE" --no-merges "$@" --format= --name-only | grep -v '^$' | grep -vE "$NOISE" | sort | uniq -c | sort -rn | head -"$TOP"; }
-echo "# 熱點（origin/main $BASE，$SINCE 起）"
-echo "commit 數：$(git log origin/main --since="$SINCE" --no-merges --oneline | wc -l)，fix commit 數：$(git log origin/main --since="$SINCE" --no-merges -i --grep='^fix' --oneline | wc -l)"
+git fetch -q origin 2>/dev/null || true  # 離線就用本機已有的遠端 ref
+MAIN=$(git symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main)  # 預設 branch 不一定叫 main
+BASE=$(git rev-parse --short "$MAIN")
+count() { git log "$MAIN" --since="$SINCE" --no-merges "$@" --format= --name-only | grep -v '^$' | grep -vE "$NOISE" | sort | uniq -c | sort -rn | head -"$TOP"; }
+echo "# 熱點（$MAIN $BASE，$SINCE 起）"
+echo "commit 數：$(git log "$MAIN" --since="$SINCE" --no-merges --oneline | wc -l)，fix commit 數：$(git log "$MAIN" --since="$SINCE" --no-merges -i --grep='^fix' --oneline | wc -l)"
 echo "排除：$NOISE"
 echo
 echo "## 全部改動次數"
-echo "\$ git log origin/main --since=$SINCE --no-merges --format= --name-only | （排除雜訊）| sort | uniq -c | sort -rn"
+echo "\$ git log "$MAIN" --since=$SINCE --no-merges --format= --name-only | （排除雜訊）| sort | uniq -c | sort -rn"
 count
 echo
 echo "## fix commit 改動次數"
-echo "\$ git log origin/main --since=$SINCE --no-merges -i --grep='^fix' --format= --name-only | （排除雜訊）| sort | uniq -c | sort -rn"
+echo "\$ git log "$MAIN" --since=$SINCE --no-merges -i --grep='^fix' --format= --name-only | （排除雜訊）| sort | uniq -c | sort -rn"
 count -i --grep='^fix'
 echo
 echo "## 常一起改的檔案（同一 commit，兩張表前 $TOP 名的聯集之間，≥3 次）"
-TOPFILES=$( { count; count -i --grep='^fix'; } | awk '{print $2}' | sort -u)
-git log origin/main --since="$SINCE" --no-merges --format='@%h' --name-only | grep -v '^$' \
+TOPFILES=$( { count; count -i --grep='^fix'; } | sed -E "s/^ *[0-9]+ //" | sort -u)
+git log "$MAIN" --since="$SINCE" --no-merges --format='@%h' --name-only | grep -v '^$' \
   | awk -v top="$TOPFILES" 'BEGIN{n=split(top,t,"\n"); for(i=1;i<=n;i++) keep[t[i]]=1}
     /^@/{flush(); next} keep[$0]{f[++k]=$0}
     function flush(){ for(i=1;i<=k;i++) for(j=i+1;j<=k;j++){a=f[i];b=f[j]; if(a>b){x=a;a=b;b=x}; c[a" ↔ "b]++}; k=0 }

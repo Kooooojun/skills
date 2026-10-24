@@ -4,7 +4,7 @@
     "name": "Kooooojun",
     "url": "https://github.com/Kooooojun"
   },
-  "description": "Kooooojun's agent skills for Claude Code.",
+  "description": "Kooooojun's Agent Skills (SKILL.md) for Claude Code, Codex, OpenCode and other agents.",
   "plugins": [
     {
       "name": "kooooojun-skills",
