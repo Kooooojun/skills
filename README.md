@@ -1,17 +1,28 @@
 # Kooooojun's skills
 
-Claude Code 的 agent skills。說明以繁體中文撰寫。
+照 [Agent Skills](https://agentskills.io/specification) 格式寫的 skills（一個資料夾一個 `SKILL.md`），Claude Code、Codex、OpenCode、Gemini CLI／Antigravity 等支援 Agent Skills 的 agent 都能用。說明以繁體中文撰寫。
 
 ## 安裝
 
-在 Claude Code 裡：
+**任何 agent**（用 [skills](https://github.com/vercel-labs/skills) CLI，會問你要裝到哪個 agent）：
+
+```
+npx skills add Kooooojun/skills
+```
+
+**Claude Code plugin**：
 
 ```
 /plugin marketplace add Kooooojun/skills
 /plugin install kooooojun-skills@kooooojun
 ```
 
-只想要其中一個：把 `skills/<名字>/` 整個資料夾複製到 `~/.claude/skills/`。
+**手動**：把 `skills/<名字>/` 整個資料夾複製到你的 agent 讀 skills 的資料夾（Claude Code 是 `~/.claude/skills/`，其他 agent 看它的文件）。
+
+### 不同 agent 的差異
+
+- 會用到「選擇題」與「subagent」。宿主有就用；沒有選擇題工具就在對話裡列編號選項，不能開 subagent 時 hotspot-review 改成依序分析，overnight 的 merge／部署會停在「卡住」不執行（安全的那一邊）。
+- `overnight` 的 frontmatter 有 Claude Code 專用欄位 `disable-model-invocation`（只能手動 `/overnight` 觸發），其他 agent 會忽略。
 
 ## Skills
 
@@ -29,7 +40,7 @@ Claude Code 的 agent skills。說明以繁體中文撰寫。
 - 錢、時間、權限、資料的計算規則、migration、方向性問題一律留到早上，兩個選項都先準備好。
 - merge 與部署每次都要先過一個獨立 agent 的 review。不 force-push、不 rebase、不改測試期望值。
 
-**需要**：[pstack](https://github.com/michael-denyer/pstack-claude) plugin（中間的工作交給它的 `poteto-mode`）。早上的網頁會用 `eli5` skill，沒有就自己寫簡單 HTML。
+**選用**：裝了 [pstack](https://github.com/michael-denyer/pstack-claude) 會把中間的工作交給它的 `poteto-mode`；沒裝就由 agent 自己照交接單做。早上的網頁會用 `eli5` skill，沒有就自己寫簡單 HTML。
 
 **本機設定（選用）**：`~/.config/overnight/local.md` 存在就會一起讀，放只屬於你這台機器的檢查與規則，例如記憶體上限、帳號切換工具。這個檔不在 skill 裡，不會被分享。
 

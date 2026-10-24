@@ -1,13 +1,14 @@
 ---
 name: overnight
-description: 夜班模式。使用者去睡覺時，把長任務整晚跑完；如果沒指定任務，就顧好使用者所有的 open PR。流程分三段：睡前先用選擇題問使用者；半夜交給 pstack:poteto-mode，讓它自己判斷、修 CI、解衝突，merge 與部署要先過獨立 agent review；早上用 /eli5 做本機網頁，再用選擇題問使用者。只把真正關鍵的決策留給使用者。觸發詞：overnight、夜班、我要睡了、明早再看、整晚跑。
+description: 夜班模式。使用者去睡覺時，把長任務整晚跑完；如果沒指定任務，就顧好使用者所有的 open PR。流程分三段：睡前先用選擇題問使用者；半夜自己判斷、修 CI、解衝突（有 pstack 的 poteto-mode 就交給它），merge 與部署要先過獨立 agent review；早上做一頁本機網頁，再用選擇題問使用者。只把真正關鍵的決策留給使用者。觸發詞：overnight、夜班、我要睡了、明早再看、整晚跑。
+compatibility: 需要 git 與 gh CLI；能開 subagent 的宿主（Claude Code、Codex 等）才能過 merge／部署的 review 關卡。
 disable-model-invocation: true
 argument-hint: "[任務描述，或 repo／PR URL…] [--until HH:MM]（預設：我所有 open PR，跑到早上 08:00）"
 ---
 
 # Overnight 夜班
 
-overnight 只做頭尾：睡前問一次、早上問一次；中間交給 `pstack:poteto-mode`。
+overnight 只做頭尾：睡前問一次、早上問一次；中間有 `pstack:poteto-mode` 就交給它，沒有就自己做。
 它的價值是**規則**（什麼留給使用者、什麼不准做、什麼要先 review）和**介面**（使用者只被打擾兩次）。
 
 `~/.config/overnight/local.md` 存在就先讀，裡面是這台機器的追加檢查與規則，跟本檔一起適用。
@@ -27,16 +28,16 @@ overnight 只做頭尾：睡前問一次、早上問一次；中間交給 `pstac
 只讀快速掃描（讀任務，或每個 PR 跑 `gh pr view --json ...`），不改程式。
 用第 4 節找出**現在就看得出來**的關鍵決策，例如 review 裡的「要不要…」、牽涉別人的 branch、範圍或截止不清楚、多件任務沒說哪件最重要（問「今晚一定要達成的是哪一件？」）。
 
-用 `AskUserQuestion` 問，格式（第 5 節同）：
+用宿主的選擇題工具問（Claude Code 是 `AskUserQuestion`；沒有就在對話裡列編號選項），格式（第 5 節同）：
 - 只問真的符合第 4 節的題目，不湊數；沒有就不問。
 - 一次最多 4 題，多的分批，重要的先問；相關的合併。
 - 每題 2 個選項，推薦的放第一並標「（建議）」，description 寫一句影響。
 
 答案寫進 `handoff.json` 的 `bedtime_answers`。**這是整晚唯一能問的時機**，交接後再問只會讓流程卡住。
 
-## 3. 交接給 poteto-mode
+## 3. 交接
 
-用 Skill tool 呼叫 `pstack:poteto-mode`，args 用下面的交接單，填好 `<…>`：
+填好下面交接單的 `<…>`。有 `pstack:poteto-mode` 就呼叫它，把交接單當參數；沒有就把交接單當成你自己今晚的工作規則，照著做。
 
 ```
 任務：<任務，或「把以下 PR 顧到合併，必要時部署：…」>
@@ -47,17 +48,17 @@ overnight 只做頭尾：睡前問一次、早上問一次；中間交給 `pstac
 1. merge 和部署每次都要先過下面的 review 關卡。不准直接 push 到 base／main、不准 release、不准繞過 branch protection。
 2. 不准 force-push（含 --force-with-lease）或 rebase。衝突用 `git merge origin/<base>` 解再正常 push；衝突不是停下的理由（覆寫 Babysit 第 5 步），只有碰到關鍵決策的 hunk 才照第 4 條。
 3. 不准 --no-verify；不准為了變綠改測試期望值或停用 check。不用破壞性指令（git branch -D、reset --hard、clean -f、rm -rf）：清 branch 用 git branch -d，刪檔用可還原的方式。<local.md 有安全規則就貼在這裡> 指令被擋就換允許的做法，不要停下等人。
-4. 不准 AskUserQuestion。碰到關鍵決策：兩個選項都準備好（branch、worktree 或 diff），都不 push；寫進 <OUT>/handoff.json 的 decisions，然後做別的。
-5. 決策紀錄照 show-me-your-work 的規定寫在 <OUT>/decisions.tsv。
+4. 不准用選擇題工具或任何方式停下來問人。碰到關鍵決策：兩個選項都準備好（branch、worktree 或 diff），都不 push；寫進 <OUT>/handoff.json 的 decisions，然後做別的。
+5. 每個非顯而易見的決定寫一行到 <OUT>/decisions.tsv：時間、決定、理由、還原方式。
 6. 每做完一個單位，更新 <OUT>/handoff.json 的 items 與狀態。
-7. 每次醒來（含 /loop、ScheduleWakeup）先看時間。過了截止或提早做完：不開新工作，把手上那步做完或退回，回到 overnight 第 5 節收尾。
+7. 每次醒來（含排程或 loop 的喚醒）先看時間。過了截止或提早做完：不開新工作，把手上那步做完或退回，回到 overnight 第 5 節收尾。
 
 什麼算關鍵決策：<第 4 節 1–7 條和判準，一字不改>
 merge／部署前的 review 關卡：<第 4.5 節，一字不改>
 這份清單優先於 never-block-on-the-human：碰到任何一條，就算可以 revert，也要留給我。
 ```
 
-之後照 poteto-mode 自己的路由做事（Autonomous run、Babysit、fix-ci、fix-merge-conflicts），這裡不重寫。
+有 poteto-mode 就照它自己的路由做事（Autonomous run、Babysit、fix-ci、fix-merge-conflicts），這裡不重寫；沒有就自己逐個 PR 修 CI、解衝突、處理 review，每做完一個就回頭看時間。
 
 ## 4. 什麼事要留給使用者
 
@@ -87,7 +88,7 @@ merge PR、部署：每次都要過，沒有例外。
 - merge：已 `git merge origin/<base>` 跟上 base、CI 全綠；沒有人類 reviewer 的 CHANGES_REQUESTED 或未回答的問題；沒碰到第 4 節 2–5 條。
 - 部署：只用該 repo AGENTS.md 寫的方式；要部署的 commit 在 main 上且 CI 全綠。
 
-**叫 reviewer**：派不出 reviewer（例如沒有 Agent tool）就不做，記成 items 的 `blocked` 並寫原因；這是環境問題，不是決策，不要變成問使用者的題目。用 Agent tool 派一個 fresh Claude agent（不用 Codex），只讀不改，不給你的結論。給它動作、PR 連結或 diff、CI 結果、repo 的 AGENTS.md 路徑；部署再給上次部署到這次之間的 commit。請它檢查 bug、有沒有碰到第 4 節 1–7 條、部署會不會影響正在用的服務或資料，最後一行只回 `PASS` 或 `BLOCK：<原因>`。
+**叫 reviewer**：派不出 reviewer（宿主不能開 subagent）就不做，記成 items 的 `blocked` 並寫原因；這是環境問題，不是決策，不要變成問使用者的題目。派一個全新的 subagent（不帶你的 context），只讀不改，不給你的結論。給它動作、PR 連結或 diff、CI 結果、repo 的 AGENTS.md 路徑；部署再給上次部署到這次之間的 commit。請它檢查 bug、有沒有碰到第 4 節 1–7 條、部署會不會影響正在用的服務或資料，最後一行只回 `PASS` 或 `BLOCK：<原因>`。
 
 **看結果**：
 - `PASS`：照做，記進 `decisions.tsv`，附 reviewer 重點和還原方式（merge 寫 `git revert -m 1 <sha>`，部署寫該 repo 的回滾方式）。
@@ -96,12 +97,12 @@ merge PR、部署：每次都要過，沒有例外。
 
 ## 5. 早上收尾
 
-poteto-mode 跑完、截止到了，或流程中斷時：
+工作做完、截止到了，或流程中斷時：
 
 1. **核對 `handoff.json`**：每個 item 以實際查到的為準（`gh pr view`、本機測試）。worker 說做完不等於 CI 綠。
-2. **做網頁**：呼叫 `eli5` skill（沒有就自己寫簡單 HTML），主題是 `handoff.json` 的白話摘要：幾件事要你決定（每件 2 選項、標推薦）、修好什麼、卡住什麼、`decisions.tsv` 連結。存成本機 `$OUT/morning.html`，不發布成 Artifact。
+2. **做網頁**：呼叫 `eli5` skill（沒有就自己寫簡單 HTML），主題是 `handoff.json` 的白話摘要：幾件事要你決定（每件 2 選項、標推薦）、修好什麼、卡住什麼、`decisions.tsv` 連結。存成本機 `$OUT/morning.html`，不發布到線上。
 3. **回覆使用者**：`morning.html` 絕對路徑，加一行數字：要你決定幾題、完成幾項、卡住幾項。
-4. **問選擇題**：有決策就用 `AskUserQuestion` 問（格式同第 2 節）。使用者選完，把準備好的那個選項做完並 push；之後 merge 或部署一樣先過第 4.5 節。
+4. **問選擇題**：有決策就用選擇題問（工具與格式同第 2 節）。使用者選完，把準備好的那個選項做完並 push；之後 merge 或部署一樣先過第 4.5 節。
 5. **清 worktree**：這一晚建的 worktree，`git status` 乾淨、HEAD 已在 `origin/main` 或 PR 已合併、沒有程式在跑，就收掉（移除 worktree、`git worktree prune`、`git branch -d`）；其他保留並寫進 items。
 6. **收工**：選擇題處理完，`run.status` 改 `done`。之後的新工作另開 `$OUT-day`，不寫進這一晚的檔案，免得被看成夜班沒做完。
 
