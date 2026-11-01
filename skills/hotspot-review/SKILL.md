@@ -40,7 +40,7 @@ compatibility: 需要 git、bash；重構階段需要 gh CLI。能開 subagent �
 bash <本 skill 目錄>/scripts/hotspots.sh <起始日> > "$OUT/hotspots.txt"
 ```
 
-輸出三張表：全部改動次數、fix 改動次數、常一起改的檔案組（已排除文件、changelog、fixture、lockfile，開頭附可重跑的指令）。第二個參數是每張表的列數（預設 30），不是天數。repo 有其他產生檔或雜訊，用環境變數 `HOTSPOT_NOISE` 追加排除的正規式。
+輸出三張表：全部改動次數、fix 改動次數、常一起改的檔案組（已排除文件、changelog、fixture、lockfile，開頭附可重跑的指令）。第二個參數是每張表的列數（預設 30），不是天數。repo 有其他產生檔或雜訊，用環境變數 `HOTSPOT_NOISE` 追加排除的正規式。fix commit 指標題以 `fix`、`修正`、`修復` 開頭者（不分大小寫；`修改` 不算）。分析期間 origin/main 可能前進，用 `HOTSPOT_REF=<sha>` 固定 ref 才能重現。
 
 ### 2. 挑熱點
 
