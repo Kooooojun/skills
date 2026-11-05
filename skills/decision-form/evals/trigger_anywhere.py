@@ -35,8 +35,9 @@ def run_one(query: str, desc: str) -> str:
     cmd_file.write_text(f"---\ndescription: |\n  {desc}\n---\n\n# decision-form\n", encoding="utf-8")
     env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
     proc = subprocess.Popen(["claude", "-p", query, "--output-format", "stream-json", "--verbose",
-                             "--disallowedTools", DISALLOWED, "--max-turns", str(MAX_TURNS)],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, text=True)
+                             "--disallowedTools", DISALLOWED, "--max-turns", str(MAX_TURNS),
+                             "--strict-mcp-config"],  # 不給 --mcp-config＝不載入任何 MCP，避免真的寫進 Notion 等服務
+                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env, text=True)
     # 靜默卡住時 stdout 不會有新行，迴圈裡檢查時間沒用，改由計時器砍掉。
     timer = threading.Timer(TIMEOUT, proc.kill)
     timer.start()
@@ -50,7 +51,8 @@ def run_one(query: str, desc: str) -> str:
             events += 1
             if ev.get("type") == "result":
                 # 跑完都沒叫 skill；登入失效、限流等錯誤結果不能當成「沒觸發」而讓反例空洞通過。
-                verdict = "no-skill" if ev.get("subtype") == "success" and not ev.get("is_error") else f"error:{ev.get('subtype')}"
+                done = ev.get("subtype") in ("success", "error_max_turns")  # 回合用完也是沒叫 skill
+                verdict = "no-skill" if done else f"error:{ev.get('subtype')}"
                 break
             if ev.get("type") != "assistant":
                 continue
@@ -76,7 +78,7 @@ def run_one(query: str, desc: str) -> str:
         proc.wait()
         cmd_file.unlink(missing_ok=True)
     if verdict is None:
-        verdict = "timeout" if events else f"error:no-output rc={proc.returncode} {proc.stderr.read()[:120]!r}"
+        verdict = "timeout" if events else f"error:no-output rc={proc.returncode}"
     return verdict
 
 
