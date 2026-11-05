@@ -1,6 +1,7 @@
-"""觸發測試（整段版）：skill-creator 的 run_eval.py 只看第一個工具呼叫，
+"""觸發測試（整段版，會花 claude -p 額度）：skill-creator 的 run_eval.py 只看第一個工具呼叫，
 宿主有 SessionStart hook 時 Claude 常先查資料才叫 skill，會被誤判成沒觸發。
-這裡改看「叫 Skill 之前」的整段：叫到本 skill 算觸發；叫到別的 skill、或要寫檔／發布就停下算沒觸發。
+這裡改看整段：叫到本 skill 算觸發；叫到別的 skill、跑完都沒叫算沒觸發；出錯或逾時算失敗。
+Bash 與寫入類工具都停用，測試不會真的動手。
 
 用法（在任意空資料夾執行，會在該處建 .claude/commands/ 暫存檔，跑完刪掉）：
     python3 trigger_anywhere.py <trigger-evals.json> <skill 資料夾> [每題次數]
@@ -10,13 +11,15 @@ import json
 import os
 import subprocess
 import sys
-import time
+import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 STOP_TOOLS = {"Write", "Edit", "NotebookEdit", "Artifact"}
-MAX_TOOLS, TIMEOUT = 25, 240
+# 測試只看會不會叫 skill，不讓它真的動手：寫入類工具與 Bash 一律停用（本機可能是 bypassPermissions）。
+DISALLOWED = "Bash Write Edit NotebookEdit Artifact WebFetch"
+MAX_TOOLS, MAX_TURNS, TIMEOUT = 25, 12, 240
 
 
 def description(skill: Path) -> str:
@@ -31,18 +34,24 @@ def run_one(query: str, desc: str) -> str:
     cmd_file.parent.mkdir(parents=True, exist_ok=True)
     cmd_file.write_text(f"---\ndescription: |\n  {desc}\n---\n\n# decision-form\n", encoding="utf-8")
     env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
-    proc = subprocess.Popen(["claude", "-p", query, "--output-format", "stream-json", "--verbose"],
-                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env, text=True)
-    verdict, tools, start = "no-skill", 0, time.time()
+    proc = subprocess.Popen(["claude", "-p", query, "--output-format", "stream-json", "--verbose",
+                             "--disallowedTools", DISALLOWED, "--max-turns", str(MAX_TURNS)],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, text=True)
+    # 靜默卡住時 stdout 不會有新行，迴圈裡檢查時間沒用，改由計時器砍掉。
+    timer = threading.Timer(TIMEOUT, proc.kill)
+    timer.start()
+    verdict, tools, events = None, 0, 0
     try:
         for line in proc.stdout:
-            if time.time() - start > TIMEOUT:
-                verdict = "timeout"
-                break
             try:
                 ev = json.loads(line)
             except json.JSONDecodeError:
                 continue
+            events += 1
+            if ev.get("type") == "result":
+                # 跑完都沒叫 skill；登入失效、限流等錯誤結果不能當成「沒觸發」而讓反例空洞通過。
+                verdict = "no-skill" if ev.get("subtype") == "success" and not ev.get("is_error") else f"error:{ev.get('subtype')}"
+                break
             if ev.get("type") != "assistant":
                 continue
             for c in ev["message"]["content"]:
@@ -50,9 +59,9 @@ def run_one(query: str, desc: str) -> str:
                     continue
                 tools += 1
                 if c["name"] == "Skill":
-                    # 平行執行時同資料夾有多份暫存檔，叫到任何一份都算本 skill。
+                    # 平行執行時同資料夾有多份暫存檔，本機也可能已裝正式版；叫到任何一份都算本 skill。
                     skill = c["input"].get("skill", "")
-                    verdict = "TRIGGERED" if "decision-form-skill-" in skill else f"other:{skill}"
+                    verdict = "TRIGGERED" if "decision-form" in skill else f"other:{skill}"
                 elif c["name"] in STOP_TOOLS or c["name"].startswith("mcp__") or tools > MAX_TOOLS:
                     verdict = f"stop:{c['name']}"
                 else:
@@ -62,9 +71,12 @@ def run_one(query: str, desc: str) -> str:
                 continue
             break
     finally:
+        timer.cancel()
         proc.kill()
         proc.wait()
         cmd_file.unlink(missing_ok=True)
+    if verdict is None:
+        verdict = "timeout" if events else f"error:no-output rc={proc.returncode} {proc.stderr.read()[:120]!r}"
     return verdict
 
 
@@ -79,7 +91,8 @@ def main() -> None:
     for e in evals:
         vs = [v for (ee, _), v in zip(jobs, verdicts) if ee is e]
         hit = sum(v == "TRIGGERED" for v in vs)
-        ok = (hit / len(vs) >= 0.5) == e["should_trigger"]
+        broken = any(v.startswith(("error", "timeout")) for v in vs)
+        ok = not broken and (hit / len(vs) >= 0.5) == e["should_trigger"]
         passed += ok
         print(f"{'✅' if ok else '❌'} 應觸發={e['should_trigger']} {hit}/{len(vs)} {vs} {e['query'][:36]}")
     print(f"{passed}/{len(evals)} 通過")

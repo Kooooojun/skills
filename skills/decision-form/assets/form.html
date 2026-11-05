@@ -88,18 +88,20 @@ const QS = DATA.questions;
 const TALK = { k: "talk", label: "不確定，想討論", why: "在備註寫你卡在哪，回對話再討論。" };
 const KEY = "decision-form:" + (DATA.key || DATA.title + "|" + DATA.date);
 
-let state = {};
-try { state = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch { state = {}; }
+let state = {}, stored = true;
+try { state = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch { state = {}; stored = false; }
 let cur = Math.min(state._cur || 0, QS.length);
-const save = () => { state._cur = cur; try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
-const ans = id => (state[id] ||= { pick: null, items: null, note: "" });
+const save = () => { state._cur = cur; try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { stored = false; } };
+// 答案加 "q:" 前綴，題目 id 叫 _cur、constructor、__proto__ 也不會撞到內部欄位。
+const slot = id => "q:" + id;
+const ans = id => (state[slot(id)] ||= { pick: null, items: null, note: "" });
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 document.title = DATA.title;
 document.getElementById("h1").textContent = "🗳️ " + DATA.title;
 
 function status(q) {
-  const a = state[q.id];
+  const a = state[slot(q.id)];
   if (!a) return "";
   if (a.pick === "talk") return "talk";
   if (q.multi) return a.items ? "done" : "";
@@ -138,9 +140,10 @@ function render() {
   h += `<h2>${esc(q.title)}</h2><ul class="ctx">${(q.ctx || []).map(c => `<li>${esc(c)}</li>`).join("")}</ul>`;
   if (q.options) h += q.options.map(o => optHtml(o, a, false)).join("");
   if (q.multi) {
-    if (!a.items) { a.items = q.items.map(i => i.k); save(); }
-    h += q.items.map(i => `<label class="chk ${a.items.includes(i.k) ? "on" : ""}">
-      <input type="checkbox" data-i="${esc(i.k)}" ${a.items.includes(i.k) ? "checked" : ""}>
+    // 預設全不勾，沒動過算跳過：只是滑過去不能等於全部核准。
+    const on = k => (a.items || []).includes(k);
+    h += q.items.map(i => `<label class="chk ${on(i.k) ? "on" : ""}">
+      <input type="checkbox" data-i="${esc(i.k)}" ${on(i.k) ? "checked" : ""}>
       <span><b>${esc(i.label)}</b><br><span class="small">${esc(i.why)}</span></span></label>`).join("");
   }
   if (!q.free) h += optHtml(TALK, a, true);
@@ -154,7 +157,7 @@ function render() {
     a.pick = a.pick === b.dataset.k ? null : b.dataset.k; save(); render();
   });
   st.querySelectorAll("input[data-i]").forEach(c => c.onchange = () => {
-    const keep = new Set(a.items);
+    const keep = new Set(a.items || []);
     c.checked ? keep.add(c.dataset.i) : keep.delete(c.dataset.i);
     a.items = q.items.map(i => i.k).filter(k => keep.has(k));
     save(); render();
@@ -165,7 +168,7 @@ function render() {
 function buildText() {
   const lines = [`${DATA.title}回覆（${DATA.date}）`];
   QS.forEach((q, i) => {
-    const a = state[q.id] || {};
+    const a = state[slot(q.id)] || {};
     const note = (a.note || "").trim();
     let v = "（跳過）";
     if (a.pick === "talk") v = "🤔 想討論";
@@ -187,7 +190,7 @@ function renderEnd(st) {
     <h2>按下去，貼回對話</h2><pre id="out"></pre>
     <button class="big primary" id="copy">複製答案</button>
     <div class="ok" id="ok"></div>
-    <div class="small">沒答的題目會寫「跳過」。答案存在這個瀏覽器，關掉再開也還在。</div></div>`;
+    <div class="small">沒答的題目會寫「跳過」。${stored ? "答案存在這個瀏覽器，關掉再開也還在。" : "⚠️ 這個頁面存不了答案，複製之前不要關掉。"}</div></div>`;
   document.getElementById("out").textContent = text;
   document.getElementById("copy").onclick = async () => {
     const ok = document.getElementById("ok");
