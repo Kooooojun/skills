@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>__TITLE__</title>
+<style>
+  :root {
+    --bg: #f6f4ef; --card: #fff; --ink: #222; --muted: #6b6b6b; --line: #e4e0d6;
+    --pick: #fff3e6; --pickline: #e67e22; --rec: #2e7d32; --talk: #5b6bd6; --talkbg: #eef0ff;
+    --btn: #222; --btntext: #fff; --code: #fbfaf7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1b1a18; --card: #262522; --ink: #eee; --muted: #a8a49b; --line: #3d3a35;
+      --pick: #3a2c1c; --pickline: #f0a050; --rec: #6cc070; --talk: #8f9cf0; --talkbg: #2a2d45;
+      --btn: #eee; --btntext: #1b1a18; --code: #201f1c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 17px/1.6 -apple-system, "PingFang TC", "Noto Sans TC", sans-serif; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 16px 16px 120px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  header h1 { font-size: 18px; margin: 4px 0; }
+  .dots { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 14px; }
+  .dot { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line); background: var(--card);
+    font-size: 13px; display: grid; place-items: center; cursor: pointer; color: var(--muted); }
+  .dot.done { background: var(--pickline); border-color: var(--pickline); color: #fff; }
+  .dot.talk { background: var(--talk); border-color: var(--talk); color: #fff; }
+  .dot.now { outline: 3px solid var(--ink); outline-offset: 1px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+  .tag { display: inline-block; font-size: 13px; color: var(--muted); border: 1px solid var(--line);
+    border-radius: 999px; padding: 1px 10px; }
+  .pic { font-size: 54px; text-align: center; margin: 10px 0 4px; letter-spacing: 6px; }
+  .pic small { display: block; font-size: 14px; letter-spacing: 0; color: var(--muted); }
+  h2 { font-size: 21px; margin: 6px 0 8px; overflow-wrap: anywhere; }
+  .ctx { margin: 0 0 12px; padding-left: 0; list-style: none; }
+  .ctx li { padding: 4px 0 4px 26px; position: relative; }
+  .ctx li::before { content: "👉"; position: absolute; left: 0; }
+  .opt { display: block; width: 100%; text-align: left; border: 2px solid var(--line); background: var(--card);
+    border-radius: 12px; padding: 12px 14px; margin: 10px 0; cursor: pointer; font: inherit; color: inherit; }
+  .opt b { font-size: 17px; }
+  .opt .why { display: block; font-size: 15px; color: var(--muted); margin-top: 2px; }
+  .opt.sel { border-color: var(--pickline); background: var(--pick); }
+  .opt.talkopt.sel { border-color: var(--talk); background: var(--talkbg); }
+  .rec { color: var(--rec); font-size: 13px; font-weight: 700; border: 1px solid var(--rec);
+    border-radius: 6px; padding: 0 6px; margin-left: 6px; white-space: nowrap; }
+  .chk { display: flex; gap: 10px; align-items: flex-start; border: 2px solid var(--line); border-radius: 12px;
+    padding: 10px 12px; margin: 8px 0; cursor: pointer; }
+  .chk input { width: 22px; height: 22px; margin-top: 3px; flex: none; }
+  .chk.on { border-color: var(--pickline); background: var(--pick); }
+  label.note { display: block; font-size: 14px; color: var(--muted); margin-top: 12px; }
+  textarea { width: 100%; min-height: 70px; border: 1px solid var(--line); border-radius: 10px; padding: 10px;
+    font: inherit; font-size: 16px; resize: vertical; background: var(--card); color: var(--ink); }
+  nav { position: fixed; left: 0; right: 0; bottom: 0; background: var(--bg);
+    border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
+  nav .in { max-width: 640px; margin: 0 auto; display: flex; gap: 10px; }
+  nav button, .big { flex: 1; width: 100%; font: inherit; font-size: 17px; padding: 12px; border-radius: 12px;
+    border: 2px solid var(--btn); background: var(--card); color: var(--ink); cursor: pointer; }
+  nav button.primary, .big.primary { background: var(--btn); color: var(--btntext); }
+  nav button:disabled { opacity: .35; cursor: default; }
+  pre { white-space: pre-wrap; background: var(--code); border: 1px dashed var(--line); border-radius: 10px;
+    padding: 12px; font-size: 15px; overflow-wrap: anywhere; }
+  .ok { color: var(--rec); font-weight: 700; min-height: 1.6em; }
+  .small { font-size: 14px; color: var(--muted); }
+  .reset { background: none; border: none; color: var(--muted); font-size: 13px; text-decoration: underline; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="h1"></h1>
+    <button class="reset" id="reset">清空重填</button>
+  </header>
+  <div class="small">一題一題選。不確定就按「想討論」。最後一頁按「複製答案」，貼回對話。</div>
+  <div class="dots" id="dots"></div>
+  <div id="stage"></div>
+</div>
+<nav><div class="in">
+  <button id="prev">← 上一題</button>
+  <button id="next" class="primary">下一題 →</button>
+</div></nav>
+
+<script>
+const DATA = /*__DATA__*/null;
+const QS = DATA.questions;
+const TALK = { k: "talk", label: "不確定，想討論", why: "在備註寫你卡在哪，回對話再討論。" };
+const KEY = "decision-form:" + (DATA.key || DATA.title + "|" + DATA.date);
+
+let state = {};
+try { state = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch { state = {}; }
+let cur = Math.min(state._cur || 0, QS.length);
+const save = () => { state._cur = cur; try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
+const ans = id => (state[id] ||= { pick: null, items: null, note: "" });
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+document.title = DATA.title;
+document.getElementById("h1").textContent = "🗳️ " + DATA.title;
+
+function status(q) {
+  const a = state[q.id];
+  if (!a) return "";
+  if (a.pick === "talk") return "talk";
+  if (q.multi) return a.items ? "done" : "";
+  if (q.free) return a.note.trim() ? "done" : "";
+  return a.pick ? "done" : "";
+}
+
+function renderDots() {
+  const d = document.getElementById("dots");
+  d.innerHTML = "";
+  for (let i = 0; i <= QS.length; i++) {
+    const b = document.createElement("div");
+    b.className = "dot " + (i < QS.length ? status(QS[i]) : "") + (i === cur ? " now" : "");
+    b.textContent = i < QS.length ? i + 1 : "📋";
+    b.onclick = () => { cur = i; save(); render(); };
+    d.appendChild(b);
+  }
+}
+
+function optHtml(o, a, talk) {
+  return `<button class="opt ${talk ? "talkopt" : ""} ${a.pick === o.k ? "sel" : ""}" data-k="${esc(o.k)}">
+    <b>${talk ? "🤔 " : esc(o.k) + "．"}${esc(o.label)}</b>${o.rec ? '<span class="rec">推薦</span>' : ""}
+    <span class="why">${esc(o.why)}</span></button>`;
+}
+
+function render() {
+  renderDots();
+  document.getElementById("prev").disabled = cur === 0;
+  document.getElementById("next").disabled = cur === QS.length;
+  document.getElementById("next").textContent = cur === QS.length - 1 ? "看答案 →" : "下一題 →";
+  const st = document.getElementById("stage");
+  if (cur === QS.length) return renderEnd(st);
+  const q = QS[cur], a = ans(q.id);
+  let h = `<div class="card"><span class="tag">第 ${cur + 1} / ${QS.length} 題${q.ref ? "・" + esc(q.ref) : ""}</span>`;
+  if (q.pic) h += `<div class="pic">${esc(q.pic)}${q.cap ? `<small>${esc(q.cap)}</small>` : ""}</div>`;
+  h += `<h2>${esc(q.title)}</h2><ul class="ctx">${(q.ctx || []).map(c => `<li>${esc(c)}</li>`).join("")}</ul>`;
+  if (q.options) h += q.options.map(o => optHtml(o, a, false)).join("");
+  if (q.multi) {
+    if (!a.items) { a.items = q.items.map(i => i.k); save(); }
+    h += q.items.map(i => `<label class="chk ${a.items.includes(i.k) ? "on" : ""}">
+      <input type="checkbox" data-i="${esc(i.k)}" ${a.items.includes(i.k) ? "checked" : ""}>
+      <span><b>${esc(i.label)}</b><br><span class="small">${esc(i.why)}</span></span></label>`).join("");
+  }
+  if (!q.free) h += optHtml(TALK, a, true);
+  h += `<label class="note" for="note">${q.free ? "寫在這裡" : "備註（可不填）"}</label>
+    <textarea id="note"></textarea></div>`;
+  st.innerHTML = h;
+  const note = document.getElementById("note");
+  note.value = a.note;
+  note.oninput = () => { a.note = note.value; save(); renderDots(); };
+  st.querySelectorAll(".opt").forEach(b => b.onclick = () => {
+    a.pick = a.pick === b.dataset.k ? null : b.dataset.k; save(); render();
+  });
+  st.querySelectorAll("input[data-i]").forEach(c => c.onchange = () => {
+    const keep = new Set(a.items);
+    c.checked ? keep.add(c.dataset.i) : keep.delete(c.dataset.i);
+    a.items = q.items.map(i => i.k).filter(k => keep.has(k));
+    save(); render();
+  });
+}
+
+// 貼回對話的格式是 SKILL.md 定義的契約，改這裡要同步改 SKILL.md 與 evals/expected.txt。
+function buildText() {
+  const lines = [`${DATA.title}回覆（${DATA.date}）`];
+  QS.forEach((q, i) => {
+    const a = state[q.id] || {};
+    const note = (a.note || "").trim();
+    let v = "（跳過）";
+    if (a.pick === "talk") v = "🤔 想討論";
+    else if (q.options && a.pick) { const o = q.options.find(o => o.k === a.pick); if (o) v = `${o.k}．${o.label}`; }
+    else if (q.multi && a.items) {
+      const picked = q.items.filter(it => a.items.includes(it.k)).map(it => it.label);
+      v = picked.length ? "勾選：" + picked.join("、") : "都不勾";
+    }
+    else if (q.free && note) v = "見備註";
+    lines.push(`${i + 1}. ${q.ref ? q.ref + " " : ""}${q.title} → ${v}`);
+    if (note) lines.push("   備註：" + note.split("\n").join("\n   "));
+  });
+  return lines.join("\n");
+}
+
+function renderEnd(st) {
+  const text = buildText();
+  st.innerHTML = `<div class="card"><div class="pic">📋<small>全部答案</small></div>
+    <h2>按下去，貼回對話</h2><pre id="out"></pre>
+    <button class="big primary" id="copy">複製答案</button>
+    <div class="ok" id="ok"></div>
+    <div class="small">沒答的題目會寫「跳過」。答案存在這個瀏覽器，關掉再開也還在。</div></div>`;
+  document.getElementById("out").textContent = text;
+  document.getElementById("copy").onclick = async () => {
+    const ok = document.getElementById("ok");
+    try { await navigator.clipboard.writeText(text); ok.textContent = "✅ 複製好了，去貼吧"; }
+    catch {
+      const r = document.createRange(); r.selectNodeContents(document.getElementById("out"));
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+      let copied = false;
+      try { copied = document.execCommand("copy"); } catch {}
+      ok.textContent = copied ? "✅ 複製好了，去貼吧" : "已經幫你選取文字，長按複製";
+    }
+  };
+}
+
+function go(n) { cur = Math.max(0, Math.min(QS.length, cur + n)); save(); render(); scrollTo(0, 0); }
+document.getElementById("prev").onclick = () => go(-1);
+document.getElementById("next").onclick = () => go(1);
+document.getElementById("reset").onclick = () => {
+  if (confirm("清空所有答案？")) { state = {}; cur = 0; save(); render(); }
+};
+render();
+</script>
+</body>
+</html>

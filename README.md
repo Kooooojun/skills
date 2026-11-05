@@ -66,6 +66,15 @@ mkdir -p ~/.config/overnight && cp skills/overnight/local.example.md ~/.config/o
 - 雜訊檔案用環境變數 `HOTSPOT_NOISE` 追加排除。
 - 一次完整分析約 5 位分析員 × 15 萬 token，開跑前心裡要有數。
 
+### decision-form：待決問題做成手機問卷
+
+有一堆事要你拍板、又不想在終端機一段一段讀時，agent 把它們做成一頁一題的 HTML 問卷：每題有白話背景、2～3 個選項（寫出代價、標出推薦）、「不確定，想討論」和備註欄。你在手機上點完，按「複製答案」貼回對話，agent 照固定格式逐題處理：照選項做、想討論的先回答你、跳過的不動。
+
+- 說「做成問卷」「一題一題答」「出題給我選」，或待決問題有 3 題以上時會用。只有 1～2 題的簡單選擇改用宿主的選擇題工具。
+- 頁面由 `scripts/build_form.py` 從題目 JSON 產生，會先檢查格式（選項數、重複 id、推薦數）；答案存在瀏覽器，關掉再開還在。
+- **本機設定（選用）**：`~/.config/decision-form/local.md` 寫交付方式（例如放到哪個資料夾、給什麼網址）。從 `skills/decision-form/local.example.md` 開始改。
+- 測試：`uv run --with playwright python skills/decision-form/evals/e2e.py` 用真的 Chrome 點完整份問卷，剪貼簿要和 `evals/expected.txt` 逐字相同；`evals/trigger_anywhere.py` 檢查該觸發／不該觸發的句子。
+
 ## License
 
 MIT
