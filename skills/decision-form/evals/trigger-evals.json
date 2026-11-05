@@ -1,0 +1,8 @@
+[
+  {"query": "我整理了 5 件要你決定的事：要不要升 React 19、e2e 測試要不要拆檔、CI 要不要換 runner、設計文件放哪、要不要另開 repo。我人在外面只有手機，做成問卷讓我一題一題選", "should_trigger": true},
+  {"query": "剛剛掃完 issue，有四張要我拍板（#12 要不要關、#15 用哪個套件、#18 先修哪個、#20 要不要拆 PR），幫我做成可以點選的頁面，我答完再複製答案給你", "should_trigger": true},
+  {"query": "審查報告列了六個發現，每個都要我決定修不修，我不想在終端機一段一段讀，出題給我選", "should_trigger": true},
+  {"query": "這個 PR 要用 squash 還是 merge？", "should_trigger": false},
+  {"query": "用最簡單的方式解釋 Sharpe ratio 是什麼，畫成圖給我看", "should_trigger": false},
+  {"query": "幫我把這週做了哪些事整理成一頁報告", "should_trigger": false}
+]
