@@ -38,7 +38,7 @@ compatibility: 需要 git、bash；重構階段需要 gh CLI。能開 subagent �
 
 ## 第一階段：分析（唯讀）
 
-報告放 repo 外，避免研究產物進 commit：`OUT=~/.local/state/hotspot-review/<repo 名>/<今天日期>`（在 `/overnight` 底下用它的 `$OUT/arch/`）。subagent 的 Write 被擋時，改用 shell heredoc 寫。
+報告放 repo 外，避免研究產物進 commit：`OUT=~/.local/state/hotspot-review/<repo 名>/<今天日期>`（在 `/overnight` 底下用它的 `$OUT/arch/`）。派出的 agent 類型沒有 Write 工具時可用 shell heredoc 寫；若是權限系統拒絕寫入，不要繞過，回報主對話。
 
 ### 1. 算熱點
 
