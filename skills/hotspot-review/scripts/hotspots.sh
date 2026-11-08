@@ -20,10 +20,11 @@ boundary_in_window() {
   [ "$(git rev-parse --is-shallow-repository)" = true ] &&
     git rev-list "$MAIN" --since="$SINCE" | grep -qFxf "$(git rev-parse --git-path shallow)"
 }
-if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+if boundary_in_window; then  # 已抓夠深就不重抓，免得把使用者的 clone 砍短
   echo "淺複製：補抓 ${SINCE} 之前一段的歷史" >&2
   for back in 7 30 90; do
-    from=$(date -d "$SINCE -$back days" +%F 2>/dev/null || date -j -v-"$back"d -f %F "$SINCE" +%F)
+    from=$(date -d "$SINCE -$back days" +%F 2>/dev/null || date -j -v-"$back"d -f %F "$SINCE" +%F) \
+      || { echo "淺複製時起始日要用 YYYY-MM-DD：$SINCE" >&2; exit 1; }
     git fetch -q --shallow-since="$from" origin \
       || { echo "補抓失敗（期間內可能沒有 commit，或連不到 origin）：git fetch --shallow-since=${from} origin" >&2; exit 1; }
     boundary_in_window || break
