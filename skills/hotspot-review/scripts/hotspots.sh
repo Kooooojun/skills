@@ -12,12 +12,27 @@ TOP="${2:-30}"
 NOISE='(^(changelog\.d/|CHANGELOG|docs/|tests?/fixtures/)|\.md$|(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|uv\.lock|poetry\.lock|Cargo\.lock|go\.sum)$)'
 [ -n "${HOTSPOT_NOISE:-}" ] && NOISE="($NOISE|$HOTSPOT_NOISE)"
 git fetch -q origin 2>/dev/null || true  # 離線就用本機已有的遠端 ref
-# 淺複製只有最近幾個 commit，熱點會少算（pigpen 曾只剩 2 天歷史：30 天算成 39 個 commit，實際 886）。
-if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
-  echo "淺複製：補抓 ${SINCE} 之後的歷史" >&2
-  git fetch -q --shallow-since="$SINCE" origin || { echo "補抓失敗；先手動跑 git fetch --shallow-since=${SINCE} origin 再重跑" >&2; exit 1; }
-fi
 MAIN="${HOTSPOT_REF:-$(git symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main)}"  # 預設 branch 不一定叫 main
+# 淺複製只有最近幾個 commit，熱點會少算（pigpen 曾只剩 2 天歷史：30 天算成 39 個 commit，實際 886）。
+# 淺複製最舊的邊界 commit 沒有 parent，git log 會把整棵樹算成它改的檔案，所以邊界要落在統計期間外。
+# 不用 --deepen：有些 git server 會從分支頂端重切，反而把歷史砍短。
+boundary_in_window() {
+  [ "$(git rev-parse --is-shallow-repository)" = true ] &&
+    git rev-list "$MAIN" --since="$SINCE" | grep -qFxf "$(git rev-parse --git-path shallow)"
+}
+if boundary_in_window; then  # 已抓夠深就不重抓，免得把使用者的 clone 砍短
+  echo "淺複製：補抓 ${SINCE} 之前一段的歷史" >&2
+  for back in 7 30 90; do
+    from=$(date -d "$SINCE -$back days" +%F 2>/dev/null || date -j -v-"$back"d -f %F "$SINCE" +%F) \
+      || { echo "淺複製時起始日要用 YYYY-MM-DD：$SINCE" >&2; exit 1; }
+    git fetch -q --shallow-since="$from" origin \
+      || { echo "補抓失敗（期間內可能沒有 commit，或連不到 origin）：git fetch --shallow-since=${from} origin" >&2; exit 1; }
+    boundary_in_window || break
+  done
+  if boundary_in_window; then
+    git fetch -q --unshallow origin || { echo "補抓失敗：git fetch --unshallow origin" >&2; exit 1; }
+  fi
+fi
 BASE=$(git rev-parse --short "$MAIN")
 count() { git log "$MAIN" --since="$SINCE" --no-merges "$@" --format= --name-only | grep -v '^$' | grep -vE "$NOISE" | sort | uniq -c | sort -rn | head -"$TOP"; }
 echo "# 熱點（${MAIN} ${BASE}，${SINCE} 起）"
