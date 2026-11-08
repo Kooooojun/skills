@@ -38,7 +38,7 @@ compatibility: 需要 git、bash；重構階段需要 gh CLI。能開 subagent �
 
 ## 第一階段：分析（唯讀）
 
-報告放 repo 外，避免研究產物進 commit：`OUT=~/.local/state/hotspot-review/<repo 名>/<今天日期>`（在 `/overnight` 底下用它的 `$OUT/arch/`）。寫報告要派有 Write 工具的 agent 類型；寫不了（工具沒有或權限拒絕）就回報主對話，不用 heredoc 繞過。
+報告放 repo 外，避免研究產物進 commit：`OUT=~/.local/state/hotspot-review/<repo 名>/<今天日期>`（在 `/overnight` 底下用它的 `$OUT/arch/`）。
 
 ### 1. 算熱點
 
@@ -60,7 +60,7 @@ bash <本 skill 目錄>/scripts/hotspots.sh <起始日> > "$OUT/hotspots.txt"
 
 ### 3. 派分析員
 
-每個熱點派一位 subagent，全部同時在背景跑、只讀。要能寫輸出檔，所以用能寫檔的一般用途 agent（Claude Code 不用 Explore），用你能用的最強模型。宿主不能開 subagent 時，就自己依序照 analyst-brief 逐個熱點做，每做完一個寫完檔再做下一個。每位約 15 萬 token、5–8 分鐘，開跑前心裡要有數。給每位：
+每個熱點派一位 subagent，全部同時在背景跑、只讀。要能寫輸出檔，所以用能寫檔的一般用途 agent（Claude Code 不用 Explore），用你能用的最強模型；分析員寫不了 `hotspot-<N>.md`（工具沒有或權限拒絕）就回報，不用 heredoc 繞過。宿主不能開 subagent 時，就自己依序照 analyst-brief 逐個熱點做，每做完一個寫完檔再做下一個。每位約 15 萬 token、5–8 分鐘，開跑前心裡要有數。給每位：
 
 - `references/analyst-brief.md` 的路徑（照它做）
 - 熱點檔案清單、期間、你的初步懷疑
