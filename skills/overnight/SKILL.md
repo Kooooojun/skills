@@ -52,11 +52,16 @@ overnight 只做頭尾：睡前問一次、早上問一次；中間有 `pstack:p
 5. 每個非顯而易見的決定寫一行到 <OUT>/decisions.tsv：時間、決定、理由、還原方式。
 6. 每做完一個單位，更新 <OUT>/handoff.json 的 items 與狀態。
 7. 每次醒來（含排程或 loop 的喚醒）先看時間。過了截止或提早做完：不開新工作，把手上那步做完或退回，回到 overnight 第 5 節收尾。
+8. 等 CI、worker 或長指令時，丟到背景等它結束的通知（例如背景跑 `gh pr checks <PR> --watch`），等的時候做別件；不要在前景一次一次重查。宿主沒有背景執行就把重查間隔拉長。
 
 什麼算關鍵決策：<第 4 節 1–7 條和判準，一字不改>
 merge／部署前的 review 關卡：<第 4.5 節，一字不改>
 這份清單優先於任何「能還原就別問人」的原則（例如 pstack 的 never-block-on-the-human）：碰到任何一條，就算可以 revert，也要留給我。
 ```
+
+把填好的交接單存成 `$OUT/handoff.md`，最後加一行「收尾照 <本檔絕對路徑> 第 5 節」。對話斷掉或換新對話時，只讀它和 `handoff.json` 就能接手。
+
+如果下 `/overnight` 之前這個對話已經做過別的事，存好後回使用者一句：「這個對話已經很長，整晚每一步都會重讀它。想省額度：現在 `/clear`，再貼『讀 $OUT/handoff.md 接手夜班，照裡面的規則做』」（`$OUT` 換成絕對路徑）。講完照常開工，不等回覆；剛開的對話不用講。
 
 有 poteto-mode 就照它自己的路由做事（Autonomous run、Babysit、fix-ci、fix-merge-conflicts），這裡不重寫；沒有就自己逐個 PR 修 CI、解衝突、處理 review，每做完一個就回頭看時間。
 
